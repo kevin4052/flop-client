@@ -1,4 +1,16 @@
+"use client";
+import React, { useState } from "react";
+
 export default function Home() {
+    const [usernameCount, setUsernameCount] = useState(12);
+    const [username, setUsername] = useState("");
+
+    const handleUsername = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        setUsername(value);
+        setUsernameCount(12 - value.length);
+    };
+
     return (
         <div className="w-full min-w-80 max-w-96 h-96 mx-auto border-indigo-900">
             <form className="mt-4">
@@ -12,12 +24,17 @@ export default function Home() {
                     ></input>
                 </div>
                 <div className="flex flex-col font-semibold text-lg">
-                    <label className="mb-1 px-2">NAME</label>
+                    <label className="flex flex-row justify-between mb-1 px-2">
+                        NAME
+                        <span>{usernameCount}</span>
+                    </label>
                     <input
                         className="rounded-xl border-2 px-2 py-1 mb-2"
                         placeholder="ENTER YOUR NAME"
                         maxLength={12}
                         type="text"
+                        onChange={handleUsername}
+                        value={username}
                     ></input>
                 </div>
                 <div className="flex flex-row justify-center">
