@@ -1,14 +1,36 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function Home() {
+    const connection = useRef(null);
     const [usernameCount, setUsernameCount] = useState(12);
     const [username, setUsername] = useState("");
+
+    useEffect(() => {
+        const socket = new WebSocket(`ws://localhost:8080/ws`);
+
+        socket.addEventListener("open", (event) => {
+            socket.send("connection established");
+        });
+
+        socket.addEventListener("message", (event) => {
+            console.log("Msg from server", event.data);
+        });
+
+        socket.addEventListener("close", (event) => {
+            console.log("connection closed");
+        });
+    }, []);
 
     const handleUsername = (event: React.ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setUsername(value);
         setUsernameCount(12 - value.length);
+    };
+
+    const connectWS = () => {
+        const ws = new WebSocket(`ws://localhost:8080/ws`);
+        ws.send("from FLOP");
     };
 
     return (
@@ -43,6 +65,9 @@ export default function Home() {
                     </button>
                 </div>
             </form>
+            <div>
+                <button onClick={connectWS}>connect</button>
+            </div>
         </div>
     );
 }
