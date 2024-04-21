@@ -1,19 +1,46 @@
 "use client";
-import React, { useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 
 type Event = {
     type: string;
-    payload: string;
+    payload: SendMessageEvent | BroadcastMessageEvent;
+};
+
+type SendMessageEvent = {
+    message: string;
+    from: string;
+};
+
+type BroadcastMessageEvent = {
+    message: string;
+    from: string;
+    sentDate: string;
+};
+
+type Message = {
+    content: string;
+    date: Date;
+    username: string;
+    type: "self" | "other";
 };
 
 export default function Home() {
     const [socket, setSocket] = useState<WebSocket | undefined>(undefined);
     const [inputMessage, setInputMessage] = useState<string>("");
+    const [username, setUsername] = useState<string>("");
+    const [messages, setMessages] = useState<Array<Message>>([]);
     const [isConnected, setIsConnected] = useState<boolean>(false);
 
-    const handleInuptMessage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const connectedColor = isConnected ? "#03a10d" : "#ff0000";
+
+    const handleInuptMessage = (event: ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setInputMessage(value);
+    };
+
+    const handleUsername = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        setUsername(value);
     };
 
     const handleConnectingSocket = () => {
@@ -24,7 +51,15 @@ export default function Home() {
 
         const websocket = new WebSocket("ws://localhost:8080/ws");
         websocket.onopen = () => {
-            sendEvent("send_message", "NEW CONNECTION");
+            const msg: SendMessageEvent = {
+                message: "new connection",
+                from: "new",
+            };
+            const newEvent: Event = {
+                type: "new_connection",
+                payload: msg,
+            };
+            socket?.send(JSON.stringify(newEvent));
             setIsConnected(true);
         };
 
@@ -34,48 +69,137 @@ export default function Home() {
             setIsConnected(false);
         };
 
-        websocket.onmessage = (event: any) => {
-            console.log(event);
-        };
+        // websocket.onmessage = (event: WebSocketEventMap["message"]) => {
+        //     const data = JSON.parse(event.data);
+        //     const msg: BroadcastMessageEvent = {
+        //         type: data.type,
+        //         content: data.payload.message,
+        //         username: data.payload.from,
+        //         sentDate: data.payload.sent,
+        //     };
+
+        //     routeEvent(msg);
+        // };
 
         setSocket(websocket);
     };
 
+    // const routeEvent = (msg: BroadcastMessageEvent): void => {
+    //     if (msg.type === undefined) {
+    //         alert("no type from message");
+    //     }
+
+    //     console.log("routeEvent: ", msg.content);
+
+    //     switch (msg.type) {
+    //         case "new_message":
+    //             setMessages([...messages, msg]);
+    //             break;
+    //         default:
+    //             alert("unsupported message");
+    //             break;
+    //     }
+
+    //     console.log(messages);
+    // };
+
+    useEffect(() => {
+        if (socket === undefined) {
+            return;
+        }
+
+        socket.onmessage = (event: WebSocketEventMap["message"]) => {
+            const data: Event = JSON.parse(event.data);
+            const payload: BroadcastMessageEvent =
+                data.payload as BroadcastMessageEvent;
+
+            if (data.type === "new_message") {
+                const msg: Message = {
+                    content: payload.message,
+                    username: payload.from,
+                    date: new Date(payload.sentDate),
+                    type: username === payload.from ? "self" : "other",
+                };
+
+                setMessages([...messages, msg]);
+            }
+        };
+    }, [socket, messages, username]);
+
     const sendMessage = () => {
-        sendEvent("send_message", inputMessage);
+        const outGoingMessage: SendMessageEvent = {
+            message: inputMessage,
+            from: username,
+        };
+
+        const event: Event = {
+            type: "send_message",
+            payload: outGoingMessage,
+        };
+        socket?.send(JSON.stringify(event));
         setInputMessage("");
     };
 
-    const sendEvent = (eventType: string, payload: string) => {
-        const event: Event = {
-            type: eventType,
-            payload: payload,
-        };
-        socket?.send(JSON.stringify(event));
-    };
-
     return (
-        <div className="w-full min-w-80 max-w-96 h-96 mx-auto border-indigo-900">
-            <div className="flex flex-col justify-center">
-                <h3>Connected: {isConnected ? "true" : "false"}</h3>
-                <button onClick={handleConnectingSocket}>
-                    {!isConnected ? "Connect" : "Disconnect"}
+        <div className="w-full px-2 min-w-80 max-w-96 h-96 mx-auto border-indigo-900">
+            <section className="flex flex-row justify-center">
+                <button
+                    className="flex flex-row items-center"
+                    onClick={handleConnectingSocket}
+                >
+                    Websocket Connection:
+                    <div
+                        className="w-5 h-5 rounded mx-2"
+                        style={{ backgroundColor: connectedColor }}
+                    ></div>
                 </button>
-            </div>
-            <div>
+            </section>
+            <section className="flex flex-row justify-around items-center my-4">
+                <div>Username:</div>
                 <input
-                    className="border border-black px-4 py-2 m-2 w-full"
+                    className="border border-black rounded-lg px-4 py-2"
+                    value={username}
+                    onChange={handleUsername}
+                ></input>
+            </section>
+            <section className="border border-black rounded-lg px-4 pb-4 min-h-52">
+                {messages.map((msg, index: number) => {
+                    const sentDate = msg.date;
+
+                    if (msg.type === "self") {
+                        return (
+                            <div
+                                key={index}
+                                className="flex flex-col mt-2 text-right justify-end"
+                            >
+                                <div>{msg.username}</div>
+                                <div>{msg.content}</div>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div key={index} className="flex flex-col mt-2">
+                            <div>{msg.username}</div>
+                            <div>{msg.content}</div>
+                        </div>
+                    );
+                })}
+            </section>
+            <section>
+                <input
+                    className="border border-black rounded-lg px-4 py-2 my-2 w-full"
                     type="text"
                     value={inputMessage}
                     onChange={handleInuptMessage}
                 ></input>
                 <button
-                    className="border border-black px-4 py-2 mx-2"
+                    className="border border-black rounded-lg px-4 py-2"
                     onClick={sendMessage}
                 >
                     Send Message
                 </button>
-            </div>
+            </section>
         </div>
     );
 }
