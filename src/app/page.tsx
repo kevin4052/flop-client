@@ -28,6 +28,7 @@ export default function Home() {
     const [socket, setSocket] = useState<WebSocket | undefined>(undefined);
     const [inputMessage, setInputMessage] = useState<string>("");
     const [username, setUsername] = useState<string>("");
+    const [chatRoom, setChatRoom] = useState<string>("Default");
     const [messages, setMessages] = useState<Array<Message>>([]);
     const [isConnected, setIsConnected] = useState<boolean>(false);
 
@@ -41,6 +42,11 @@ export default function Home() {
     const handleUsername = (event: ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setUsername(value);
+    };
+
+    const handleChatRoom = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        setChatRoom(value);
     };
 
     const handleConnectingSocket = () => {
@@ -142,27 +148,42 @@ export default function Home() {
 
     return (
         <div className="w-full px-2 min-w-80 max-w-96 h-96 mx-auto border-indigo-900">
-            <section className="flex flex-row justify-center">
-                <button
-                    className="flex flex-row items-center"
-                    onClick={handleConnectingSocket}
-                >
-                    Websocket Connection:
-                    <div
-                        className="w-5 h-5 rounded mx-2"
-                        style={{ backgroundColor: connectedColor }}
-                    ></div>
-                </button>
+            <section className="flex flex-col items-center">
+                <div>
+                    <button
+                        className="flex flex-row items-center p-2 m-2 rounded-lg bg-slate-200 hover:shadow-lg"
+                        onClick={handleConnectingSocket}
+                    >
+                        Websocket Connection:
+                        <div
+                            className="w-5 h-5 rounded mx-2"
+                            style={{ backgroundColor: connectedColor }}
+                        ></div>
+                    </button>
+                </div>
+                <div>
+                    <span>Current chat room: {chatRoom}</span>
+                </div>
             </section>
-            <section className="flex flex-row justify-around items-center my-4">
-                <div>Username:</div>
-                <input
-                    className="border border-black rounded-lg px-4 py-2"
-                    value={username}
-                    onChange={handleUsername}
-                ></input>
+            <section className="flex flex-col justify-around items-center">
+                <div className="flex flex-row justify-around items-center my-2">
+                    <div>Username:</div>
+                    <input
+                        className="border border-black rounded-lg px-4 py-2"
+                        value={username}
+                        onChange={handleUsername}
+                    ></input>
+                </div>
+                <div className="flex flex-row justify-around items-center my-2">
+                    <div>Change chat room:</div>
+                    <input
+                        className="border border-black rounded-lg px-4 py-2"
+                        value={chatRoom}
+                        onChange={handleChatRoom}
+                    ></input>
+                </div>
             </section>
-            <section className="border border-black rounded-lg px-4 pb-4 min-h-52">
+            <section className="container flex-grow border border-black rounded-lg px-4 pb-4 h-52 overflow-y-auto">
                 {messages.map((msg, index: number) => {
                     const sentDate = msg.date;
 
@@ -194,7 +215,7 @@ export default function Home() {
                     onChange={handleInuptMessage}
                 ></input>
                 <button
-                    className="border border-black rounded-lg px-4 py-2"
+                    className="bg-slate-200 rounded-lg px-4 py-2 hover:shadow-md"
                     onClick={sendMessage}
                 >
                     Send Message
